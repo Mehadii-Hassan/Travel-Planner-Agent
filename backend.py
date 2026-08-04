@@ -18,6 +18,7 @@ from langchain_core.messages import(
     SystemMessage,
 )
 from langchain_groq import ChatGroq
+from tools.flight_tool import search_flights
 
 # load the GROQ_API_KEY from the environment variable
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")   
@@ -57,6 +58,20 @@ def flight_agent(state: TravelState):
         "flight_results": flight_data,
         "message": [
             AIMessage(content="Flight results fetched successfully.")
+        ],
+        "llm_calls": state.get("llm_calls", 0) + 1
+    }
+
+
+#hotel agent
+def hotel_agent(state: TravelState):
+    query = f"Best hotels for {state['user_query']}"
+    hotel_results = tavily_search(query)
+
+    return {
+        "hotel_results": hotel_results,
+        "message": [
+            AIMessage(content="Hotel results fetched successfully.")
         ],
         "llm_calls": state.get("llm_calls", 0) + 1
     }
