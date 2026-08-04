@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Planner AI</title>
+    
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-plane-departure"></i>
+            </div>
+            <h1>AI Travel Planner</h1>
+            <p>Your intelligent, multi-agent travel companion.</p>
+        </header>
+
+        <main class="app-main">
+            <!-- Input Section -->
+            <section class="input-section">
+                <div class="input-wrapper">
+                    <textarea id="userInput" placeholder="E.g., Plan a 7-day budget trip to Tokyo, Japan from New York..." rows="3"></textarea>
+                    <button id="planBtn" onclick="planTrip()">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Plan My Trip
+                    </button>
+                </div>
+                <div id="errorMsg" class="error-msg hidden"></div>
+            </section>
+
+            <!-- Loading State -->
+            <section id="loadingState" class="loading-section hidden">
+                <div class="spinner"></div>
+                <p>Our agents are working hard...</p>
+                <div class="loading-steps">
+                    <span class="step"><i class="fa-solid fa-plane"></i> Checking Flights</span>
+                    <span class="step"><i class="fa-solid fa-hotel"></i> Finding Hotels</span>
+                    <span class="step"><i class="fa-solid fa-map-location-dot"></i> Crafting Itinerary</span>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="resultsState" class="results-section hidden">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab(event, 'finalAnswer')">Summary & Plan</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'flights')">Flight Data</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'hotels')">Hotel Data</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'rawItinerary')">Raw Itinerary</button>
+                </div>
+
+                <div class="tab-content-wrapper">
+                    <div id="finalAnswer" class="tab-content active markdown-body"></div>
+                    <div id="flights" class="tab-content code-block"></div>
+                    <div id="hotels" class="tab-content code-block"></div>
+                    <div id="rawItinerary" class="tab-content code-block"></div>
+                </div>
+                
+                <div class="stats-footer">
+                    <small>LLM Calls made: <span id="llmCalls">0</span></small>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="/static/script.js"></script>
+</body>
+</html>
