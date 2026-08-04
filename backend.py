@@ -1,4 +1,4 @@
-import os
+import os 
 import certifi
 from dotenv import load_dotenv
 
@@ -11,41 +11,37 @@ from typing import TypedDict, Annotated
 import operator
 import uuid
 from langgraph.graph import StateGraph, START, END
-from langchain_core.messages import(
+from langchain_core.messages import (
     AnyMessage,
     HumanMessage,
     AIMessage,
     SystemMessage,
 )
-
 from langchain_groq import ChatGroq
-from tools.flight_tool import search_flights #this is the flight search function from flight_tool.py
-from tools.tavily_tool import tavily_search #this is the hotel search function from tavily_tool.py
+from tools.flight_tool import search_flights
+from tools.tavily_tool import tavily_search
+from langgraph.checkpoint.sqlite import SqliteSaver
+import sqlite3
 
-import sqlite3 #this is for the sqlite database to store the state of the graph
-from langgraph.checkpoint.sqlite import SqliteSaver #this is the checkpointing mechanism to save the state of the graph
 
-
-# load the GROQ_API_KEY from the environment variable
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")   
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
-    raise ValueError("GROQ_API_KEY environment variable is not set. Please set it in your .env file.")
+    raise ValueError("GROQ_API_KEY is missing. Please add it to your .env file.")
 
-# initialize the ChatGroq model with the specified model and API key
+
+
+# LLM
 llm = ChatGroq(
-    model = "llama-3.3-70b-versatile", 
-    api_key = GROQ_API_KEY
+    model="llama-3.3-70b-versatile",
+    api_key=GROQ_API_KEY
 )
 
-# test the model by sending a simple message and printing the response
-# response = llm.invoke("Hello, how are you?")
-# print(response)
 
 
 
-# Create state
+# State
 class TravelState(TypedDict):
-    message: Annotated[list[AnyMessage], operator.add]
+    messages: Annotated[list[AnyMessage], operator.add]
     user_query: str
     flight_results: str
     hotel_results: str
@@ -53,39 +49,40 @@ class TravelState(TypedDict):
     llm_calls: int
 
 
-# Define agent functions
 
-#flight agent
+# Flight Agent
 def flight_agent(state: TravelState):
     query = state["user_query"]
     flight_data = search_flights(query)
 
     return {
         "flight_results": flight_data,
-        "message": [
-            AIMessage(content="Flight results fetched successfully.")
+        "messages": [
+            AIMessage(content="Flight results fetched.")
         ],
         "llm_calls": state.get("llm_calls", 0) + 1
     }
 
 
-#hotel agent
+
+# Hotel Agent
 def hotel_agent(state: TravelState):
     query = f"Best hotels for {state['user_query']}"
     hotel_results = tavily_search(query)
 
     return {
         "hotel_results": hotel_results,
-        "message": [
-            AIMessage(content="Hotel results fetched successfully.")
+        "messages": [
+            AIMessage(content="Hotel information fetched.")
         ],
         "llm_calls": state.get("llm_calls", 0) + 1
     }
 
 
-#itinerary agent
+# Itinerary Agent
 def itinerary_agent(state: TravelState):
-    prompt = f"""Create a complete travel itinerary.
+    prompt = f"""
+Create a complete travel itinerary.
 
 User Query:
 {state['user_query']}
@@ -111,9 +108,12 @@ Make the itinerary practical, budget-aware, and easy to follow.
     }
 
 
-#final agent
+
+
+# Final Response Agent
 def final_agent(state: TravelState):
-    final_prompt = f"""Generate the final travel response for the user.
+    final_prompt = f"""
+Generate the final travel response for the user.
 
 User Request:
 {state['user_query']}
@@ -153,13 +153,12 @@ Important:
     }
 
 
-
-#checkpointer
+# Checkpointer
 conn = sqlite3.connect(database="travel.db", check_same_thread=False)
 checkpoint = SqliteSaver(conn)
 
 
-#graph
+# Build Graph
 graph = StateGraph(TravelState)
 
 graph.add_node("flight_agent", flight_agent)
@@ -176,8 +175,7 @@ graph.add_edge("final_agent", END)
 travel_graph = graph.compile(checkpointer=checkpoint)
 
 
-
-# Function to run the travel agent
+# Function for FastAPI
 def run_travel_agent(user_input: str, thread_id: str | None = None):
     if not thread_id:
         thread_id = f"user_{uuid.uuid4().hex}"
